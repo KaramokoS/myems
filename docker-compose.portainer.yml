@@ -1,0 +1,253 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: myems-mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      TZ: UTC
+    volumes:
+      - myems-db-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - myems-network
+
+  api:
+    build:
+      context: ./myems-api
+      dockerfile: Dockerfile
+    container_name: myems-api
+    command: gunicorn app:api -b 0.0.0.0:8000 --timeout 600 --workers=4
+    volumes:
+      - myems-upload:/var/www/myems-admin/upload
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      MYEMS_SYSTEM_DB_HOST: mariadb
+      MYEMS_SYSTEM_DB_PORT: 3306
+      MYEMS_SYSTEM_DB_DATABASE: myems_system_db
+      MYEMS_SYSTEM_DB_USER: root
+      MYEMS_SYSTEM_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_USER_DB_HOST: mariadb
+      MYEMS_USER_DB_PORT: 3306
+      MYEMS_USER_DB_DATABASE: myems_user_db
+      MYEMS_USER_DB_USER: root
+      MYEMS_USER_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_HISTORICAL_DB_HOST: mariadb
+      MYEMS_HISTORICAL_DB_PORT: 3306
+      MYEMS_HISTORICAL_DB_DATABASE: myems_historical_db
+      MYEMS_HISTORICAL_DB_USER: root
+      MYEMS_HISTORICAL_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_DB_HOST: mariadb
+      MYEMS_ENERGY_DB_PORT: 3306
+      MYEMS_ENERGY_DB_DATABASE: myems_energy_db
+      MYEMS_ENERGY_DB_USER: root
+      MYEMS_ENERGY_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_BILLING_DB_HOST: mariadb
+      MYEMS_BILLING_DB_PORT: 3306
+      MYEMS_BILLING_DB_DATABASE: myems_billing_db
+      MYEMS_BILLING_DB_USER: root
+      MYEMS_BILLING_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_CARBON_DB_HOST: mariadb
+      MYEMS_CARBON_DB_PORT: 3306
+      MYEMS_CARBON_DB_DATABASE: myems_carbon_db
+      MYEMS_CARBON_DB_USER: root
+      MYEMS_CARBON_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_BASELINE_DB_HOST: mariadb
+      MYEMS_ENERGY_BASELINE_DB_PORT: 3306
+      MYEMS_ENERGY_BASELINE_DB_DATABASE: myems_energy_baseline_db
+      MYEMS_ENERGY_BASELINE_DB_USER: root
+      MYEMS_ENERGY_BASELINE_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_MODEL_DB_HOST: mariadb
+      MYEMS_ENERGY_MODEL_DB_PORT: 3306
+      MYEMS_ENERGY_MODEL_DB_DATABASE: myems_energy_model_db
+      MYEMS_ENERGY_MODEL_DB_USER: root
+      MYEMS_ENERGY_MODEL_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_PLAN_DB_HOST: mariadb
+      MYEMS_ENERGY_PLAN_DB_PORT: 3306
+      MYEMS_ENERGY_PLAN_DB_DATABASE: myems_energy_plan_db
+      MYEMS_ENERGY_PLAN_DB_USER: root
+      MYEMS_ENERGY_PLAN_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_PREDICTION_DB_HOST: mariadb
+      MYEMS_ENERGY_PREDICTION_DB_PORT: 3306
+      MYEMS_ENERGY_PREDICTION_DB_DATABASE: myems_energy_prediction_db
+      MYEMS_ENERGY_PREDICTION_DB_USER: root
+      MYEMS_ENERGY_PREDICTION_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_FDD_DB_HOST: mariadb
+      MYEMS_FDD_DB_PORT: 3306
+      MYEMS_FDD_DB_DATABASE: myems_fdd_db
+      MYEMS_FDD_DB_USER: root
+      MYEMS_FDD_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_REPORTING_DB_HOST: mariadb
+      MYEMS_REPORTING_DB_PORT: 3306
+      MYEMS_REPORTING_DB_DATABASE: myems_reporting_db
+      MYEMS_REPORTING_DB_USER: root
+      MYEMS_REPORTING_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_PRODUCTION_DB_HOST: mariadb
+      MYEMS_PRODUCTION_DB_PORT: 3306
+      MYEMS_PRODUCTION_DB_DATABASE: myems_production_db
+      MYEMS_PRODUCTION_DB_USER: root
+      MYEMS_PRODUCTION_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      UPLOAD_PATH: /var/www/myems-admin/upload/
+      UTC_OFFSET: "+00:00"
+      CURRENCY_UNIT: CNY
+    networks:
+      - myems-network
+    ports:
+      - "8000:8000"
+
+  aggregation:
+    build:
+      context: ./myems-aggregation
+      dockerfile: Dockerfile
+    container_name: myems-aggregation
+    command: python main.py
+    restart: always
+    depends_on:
+      - mariadb
+      - api
+    environment:
+      MYEMS_SYSTEM_DB_HOST: mariadb
+      MYEMS_HISTORICAL_DB_HOST: mariadb
+      MYEMS_ENERGY_DB_HOST: mariadb
+      MYEMS_BILLING_DB_HOST: mariadb
+      MYEMS_CARBON_DB_HOST: mariadb
+      MYEMS_SYSTEM_DB_PORT: 3306
+      MYEMS_HISTORICAL_DB_PORT: 3306
+      MYEMS_ENERGY_DB_PORT: 3306
+      MYEMS_BILLING_DB_PORT: 3306
+      MYEMS_CARBON_DB_PORT: 3306
+      MYEMS_SYSTEM_DB_DATABASE: myems_system_db
+      MYEMS_HISTORICAL_DB_DATABASE: myems_historical_db
+      MYEMS_ENERGY_DB_DATABASE: myems_energy_db
+      MYEMS_BILLING_DB_DATABASE: myems_billing_db
+      MYEMS_CARBON_DB_DATABASE: myems_carbon_db
+      MYEMS_SYSTEM_DB_USER: root
+      MYEMS_HISTORICAL_DB_USER: root
+      MYEMS_ENERGY_DB_USER: root
+      MYEMS_BILLING_DB_USER: root
+      MYEMS_CARBON_DB_USER: root
+      MYEMS_SYSTEM_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_HISTORICAL_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_BILLING_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_CARBON_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+    networks:
+      - myems-network
+
+  cleaning:
+    build:
+      context: ./myems-cleaning
+      dockerfile: Dockerfile
+    container_name: myems-cleaning
+    command: python main.py
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      MYEMS_SYSTEM_DB_HOST: mariadb
+      MYEMS_HISTORICAL_DB_HOST: mariadb
+      MYEMS_SYSTEM_DB_PORT: 3306
+      MYEMS_HISTORICAL_DB_PORT: 3306
+      MYEMS_SYSTEM_DB_DATABASE: myems_system_db
+      MYEMS_HISTORICAL_DB_DATABASE: myems_historical_db
+      MYEMS_SYSTEM_DB_USER: root
+      MYEMS_HISTORICAL_DB_USER: root
+      MYEMS_SYSTEM_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_HISTORICAL_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+    networks:
+      - myems-network
+
+  modbus_tcp:
+    build:
+      context: ./myems-modbus-tcp
+      dockerfile: Dockerfile
+    container_name: myems-modbus-tcp
+    command: python main.py
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      MYEMS_SYSTEM_DB_HOST: mariadb
+      MYEMS_HISTORICAL_DB_HOST: mariadb
+      MYEMS_SYSTEM_DB_PORT: 3306
+      MYEMS_HISTORICAL_DB_PORT: 3306
+      MYEMS_SYSTEM_DB_DATABASE: myems_system_db
+      MYEMS_HISTORICAL_DB_DATABASE: myems_historical_db
+      MYEMS_SYSTEM_DB_USER: root
+      MYEMS_HISTORICAL_DB_USER: root
+      MYEMS_SYSTEM_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_HISTORICAL_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      GATEWAY_ID: 1
+      GATEWAY_TOKEN: 983427af-1c35-42ba-8b4d-288675550225
+    networks:
+      - myems-network
+
+  normalization:
+    build:
+      context: ./myems-normalization
+      dockerfile: Dockerfile
+    container_name: myems-normalization
+    command: python main.py
+    restart: always
+    depends_on:
+      - mariadb
+    environment:
+      MYEMS_SYSTEM_DB_HOST: mariadb
+      MYEMS_ENERGY_DB_HOST: mariadb
+      MYEMS_HISTORICAL_DB_HOST: mariadb
+      MYEMS_SYSTEM_DB_PORT: 3306
+      MYEMS_ENERGY_DB_PORT: 3306
+      MYEMS_HISTORICAL_DB_PORT: 3306
+      MYEMS_SYSTEM_DB_DATABASE: myems_system_db
+      MYEMS_ENERGY_DB_DATABASE: myems_energy_db
+      MYEMS_HISTORICAL_DB_DATABASE: myems_historical_db
+      MYEMS_SYSTEM_DB_USER: root
+      MYEMS_ENERGY_DB_USER: root
+      MYEMS_HISTORICAL_DB_USER: root
+      MYEMS_SYSTEM_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_ENERGY_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+      MYEMS_HISTORICAL_DB_PASSWORD: CHANGE_ME_STRONG_PASSWORD
+    networks:
+      - myems-network
+
+  admin:
+    build:
+      context: ./myems-admin
+      dockerfile: Dockerfile
+    container_name: myems-admin
+    command: nginx -c /etc/nginx/nginx.conf -g "daemon off;"
+    restart: always
+    volumes:
+      - myems-upload:/var/www/myems-admin/upload
+    depends_on:
+      - api
+    ports:
+      - "8001:8001"
+    networks:
+      - myems-network
+
+  web:
+    build:
+      context: ./myems-web
+      dockerfile: Dockerfile
+    container_name: myems-web
+    command: nginx -c /etc/nginx/nginx.conf -g "daemon off;"
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    networks:
+      - myems-network
+
+volumes:
+  myems-db-data:
+  myems-upload:
+
+networks:
+  myems-network:
+    driver: bridge
