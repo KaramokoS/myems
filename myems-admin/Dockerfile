@@ -1,15 +1,11 @@
-FROM nginx:latest
+FROM nginx:alpine
 
-# RUN apt update && apt install -y nano telnet
+# Remove default config and create admin root
+RUN rm -f /etc/nginx/conf.d/default.conf && \
+    rm -f /etc/nginx/nginx.conf && \
+    mkdir -p /var/www/myems-admin
 
-# remove the default config
-RUN rm /etc/nginx/conf.d/default.conf && \
-    rm /etc/nginx/nginx.conf
-
-# create new root folder
-RUN mkdir -p /var/www/myems-admin
-
-# copy the config and web codes
+# Copy nginx config and static assets
 COPY nginx.conf /etc/nginx/
 COPY . /var/www/myems-admin
 EXPOSE 8001

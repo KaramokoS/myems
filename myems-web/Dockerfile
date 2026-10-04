@@ -1,25 +1,25 @@
-FROM node:latest AS build-stage
+FROM node:22-alpine AS build-stage
 WORKDIR /opt
+
+# Copy package files first to leverage Docker layer caching
+COPY package.json package-lock.json* ./
+
+# Configure npm timeouts to prevent ECONNRESET and install with legacy-peer-deps
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --legacy-peer-deps --no-audit --no-fund
+
+# Copy source and build
 COPY . .
-
-# use this for node v22 or above, note that the default command maybe slow at sometime
-RUN npm i
-
-# use this if above command is slow or unavialiable
-# RUN npm i --registry https://registry.npm.taobao.org
-
 RUN npm run build
 
+FROM nginx:alpine AS production-stage
 
-FROM nginx:latest AS production-stage
-
-# RUN apt update && apt install -y nano telnet
-
-# remove the default config
-RUN rm /etc/nginx/conf.d/default.conf && rm /etc/nginx/nginx.conf
-
-# create new root folder
-RUN mkdir -p /var/www/myems-web
+# Remove default config and create web root
+RUN rm -f /etc/nginx/conf.d/default.conf && \
+    rm -f /etc/nginx/nginx.conf && \
+    mkdir -p /var/www/myems-web
 
 COPY nginx.conf /etc/nginx/
 COPY --from=build-stage /opt/build/ /var/www/myems-web
