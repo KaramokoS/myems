@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mariadb:
     image: mariadb:11.4
@@ -7,11 +5,17 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
-      TZ: UTC
+      TZ: "${TZ:-UTC}"
     volumes:
       - myems-db-data:/var/lib/mysql
       - ./database/install:/docker-entrypoint-initdb.d:ro
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max_allowed_packet=256M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     networks:
       - myems-network
 
@@ -23,7 +27,8 @@ services:
       - myems-upload:/var/www/myems-admin/upload
     restart: always
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     environment:
       MYEMS_SYSTEM_DB_HOST: mariadb
       MYEMS_SYSTEM_DB_PORT: 3306
@@ -91,8 +96,10 @@ services:
       MYEMS_PRODUCTION_DB_USER: root
       MYEMS_PRODUCTION_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
       UPLOAD_PATH: /var/www/myems-admin/upload/
-      UTC_OFFSET: "+00:00"
-      CURRENCY_UNIT: CNY
+      UTC_OFFSET: "${UTC_OFFSET:-+00:00}"
+      MINUTES_TO_COUNT: "${MINUTES_TO_COUNT:-60}"
+      CURRENCY_UNIT: "${CURRENCY_UNIT:-CNY}"
+      TZ: "${TZ:-UTC}"
     networks:
       myems-network:
         aliases:
@@ -107,8 +114,8 @@ services:
     command: python main.py
     restart: always
     depends_on:
-      - mariadb
-      - api
+      mariadb:
+        condition: service_healthy
     environment:
       MYEMS_SYSTEM_DB_HOST: mariadb
       MYEMS_HISTORICAL_DB_HOST: mariadb
@@ -135,6 +142,10 @@ services:
       MYEMS_ENERGY_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
       MYEMS_BILLING_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
       MYEMS_CARBON_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
+      UTC_OFFSET: "${UTC_OFFSET:-+00:00}"
+      MINUTES_TO_COUNT: "${MINUTES_TO_COUNT:-60}"
+      POOL_SIZE: "${POOL_SIZE:-5}"
+      TZ: "${TZ:-UTC}"
     networks:
       - myems-network
 
@@ -144,7 +155,8 @@ services:
     command: python main.py
     restart: always
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     environment:
       MYEMS_SYSTEM_DB_HOST: mariadb
       MYEMS_HISTORICAL_DB_HOST: mariadb
@@ -156,6 +168,8 @@ services:
       MYEMS_HISTORICAL_DB_USER: root
       MYEMS_SYSTEM_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
       MYEMS_HISTORICAL_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
+      LIVE_IN_DAYS: "${LIVE_IN_DAYS:-365}"
+      TZ: "${TZ:-UTC}"
     networks:
       - myems-network
 
@@ -165,7 +179,8 @@ services:
     command: python main.py
     restart: always
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     environment:
       MYEMS_SYSTEM_DB_HOST: mariadb
       MYEMS_HISTORICAL_DB_HOST: mariadb
@@ -188,7 +203,8 @@ services:
     command: python main.py
     restart: always
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     environment:
       MYEMS_SYSTEM_DB_HOST: mariadb
       MYEMS_ENERGY_DB_HOST: mariadb
@@ -205,6 +221,10 @@ services:
       MYEMS_SYSTEM_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
       MYEMS_ENERGY_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
       MYEMS_HISTORICAL_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
+      MINUTES_TO_CLEAN: "${MINUTES_TO_CLEAN:-30}"
+      UTC_OFFSET: "${UTC_OFFSET:-+00:00}"
+      POOL_SIZE: "${POOL_SIZE:-5}"
+      TZ: "${TZ:-UTC}"
     networks:
       - myems-network
 
